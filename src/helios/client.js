@@ -1,7 +1,14 @@
 const WebSocket = require('ws');
 const { buildReadFrame, buildWriteFrame } = require('./protocol');
 const { parseHeliosStatus } = require('./parser');
-const { REG_STATE, REG_BOOST_TIMER, REG_FIREPLACE_TIMER, REG_FAN_SPEED, MODES } = require('./registers');
+const {
+  REG_STATE,
+  REG_BOOST_TIMER,
+  REG_FIREPLACE_TIMER,
+  REG_FAN_SPEED,
+  REPLY_ERRORS,
+  MODES,
+} = require('./registers');
 
 class HeliosClient {
   constructor(options = {}) {
@@ -84,8 +91,17 @@ class HeliosClient {
         ws.send(payload.buffer);
       });
 
-      ws.on('message', () => {
+      ws.on('message', (data) => {
         cleanup();
+        // The unit answers a write with a short frame whose second word (little
+        // endian) is either an acknowledgement or one of the documented error
+        // codes. Without this check a rejected frame looks like a success.
+        const reply = Buffer.from(data);
+        const status = reply.byteLength >= 4 ? reply.readUInt16LE(2) : null;
+        const failure = status === null ? null : REPLY_ERRORS[status];
+        if (failure) {
+          return reject(new Error(`Helios rejected write: ${failure} (code ${status})`));
+        }
         resolve();
       });
     });
@@ -124,7 +140,12 @@ class HeliosClient {
   async setBoost(minutes = 30) {
     const mins = parseInt(minutes, 10);
     if (isNaN(mins)) throw new Error('Invalid minutes for boost');
-    return this.writeRegisters([[REG_BOOST_TIMER, mins]]);
+    // The fireplace timer takes precedence over boost in the unit's own state
+    // calculation, so it has to be cleared for the switch to take effect.
+    return this.writeRegisters([
+      [REG_BOOST_TIMER, mins],
+      [REG_FIREPLACE_TIMER, 0],
+    ]);
   }
 
   /**
@@ -134,7 +155,10 @@ class HeliosClient {
   async setFireplace(minutes = 15) {
     const mins = parseInt(minutes, 10);
     if (isNaN(mins)) throw new Error('Invalid minutes for fireplace');
-    return this.writeRegisters([[REG_FIREPLACE_TIMER, mins]]);
+    return this.writeRegisters([
+      [REG_BOOST_TIMER, 0],
+      [REG_FIREPLACE_TIMER, mins],
+    ]);
   }
 
   /**

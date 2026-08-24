@@ -15,19 +15,33 @@ function buildReadFrame() {
 
 /**
  * Builds the binary frame to write one or more register-value pairs.
+ *
+ * Frame layout (16-bit little-endian words, as produced by the unit's own
+ * web UI in VlxDataBuffer.convertDataToBuffer):
+ *   [0]            length = total word count - 1 (command + pairs + checksum)
+ *   [1]            command (249 / 0x00F9)
+ *   [2..2n+1]      register/value pairs
+ *   [2n+2]         checksum = sum of all preceding words, masked to 16 bits
+ *
  * @param {Array<[number, number]>} pairs Array of [registerAddress, value] tuples
  * @returns {Uint16Array}
  */
 function buildWriteFrame(pairs) {
-  const numPairs = pairs.length;
-  const totalWords = 3 + numPairs * 2;
+  if (!Array.isArray(pairs) || pairs.length === 0) {
+    throw new Error('buildWriteFrame requires at least one register/value pair');
+  }
+
+  // The unit expects the pairs in ascending register order
+  const sorted = [...pairs].sort((a, b) => a[0] - b[0]);
+
+  const totalWords = 3 + sorted.length * 2;
   const data = new Uint16Array(totalWords);
 
-  data[0] = numPairs * 2 + 1; // Length in payload words
-  data[1] = CMD_WRITE;        // 249 (0x00F9)
+  data[0] = totalWords - 1; // Length: command + pairs + checksum
+  data[1] = CMD_WRITE;      // 249 (0x00F9)
 
   let idx = 2;
-  for (const [reg, val] of pairs) {
+  for (const [reg, val] of sorted) {
     data[idx++] = reg;
     data[idx++] = val;
   }

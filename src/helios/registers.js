@@ -7,6 +7,15 @@ module.exports = {
   CMD_WRITE: 249,          // 0x00F9
   EXPECTED_STATUS_BYTE_LENGTH: 1410,
 
+  // Error codes the unit reports back in the status word of a short reply
+  REPLY_ERRORS: {
+    251: 'checksum error',
+    252: 'invalid command',
+    253: 'data boundary error',
+    254: 'table boundary error',
+    255: 'data length error',
+  },
+
   // Register Addresses (for writing)
   REG_FAN_SPEED: 4353,
   REG_STATE: 4609,
