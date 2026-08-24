@@ -114,12 +114,12 @@ class HeliosMQTTClient extends EventEmitter {
     });
   }
 
-  publishData(key, value) {
+  publishData(key, value, force = false) {
     if (!this.client || !this.connected || !this.serialNR) return;
     const strVal = (value !== null && value !== undefined) ? value.toString() : '';
 
-    // State deduplication: only publish if value changed
-    if (this.stateCache[key] === strVal) return;
+    // State deduplication: only publish if value changed, unless forced
+    if (!force && this.stateCache[key] === strVal) return;
     this.stateCache[key] = strVal;
 
     const topic = `helios/${this.serialNR}/${key}`;
@@ -127,18 +127,25 @@ class HeliosMQTTClient extends EventEmitter {
     console.log(`MQTT published: ${topic} => ${strVal}`);
   }
 
-  publishStatus(status) {
+  /**
+   * @param {object} status Parsed device status
+   * @param {object} [options]
+   * @param {boolean} [options.force] Republish every value, even unchanged ones.
+   *   Used after a command so Home Assistant is corrected when a control moved
+   *   optimistically but the unit did not follow.
+   */
+  publishStatus(status, { force = false } = {}) {
     if (!status || !status.serialNumber) return;
 
-    this.publishData('fan', status.fanSpeed);
-    this.publishData('outTemp', status.outTemp);
-    this.publishData('supTemp', status.supTemp);
-    this.publishData('indTemp', status.indTemp);
-    this.publishData('exhTemp', status.exhTemp);
-    this.publishData('airRH', status.airRH);
-    this.publishData('filterChanged', status.filterChanged);
-    this.publishData('filterDue', status.filterDue);
-    this.publishData('devState', status.devState);
+    this.publishData('fan', status.fanSpeed, force);
+    this.publishData('outTemp', status.outTemp, force);
+    this.publishData('supTemp', status.supTemp, force);
+    this.publishData('indTemp', status.indTemp, force);
+    this.publishData('exhTemp', status.exhTemp, force);
+    this.publishData('airRH', status.airRH, force);
+    this.publishData('filterChanged', status.filterChanged, force);
+    this.publishData('filterDue', status.filterDue, force);
+    this.publishData('devState', status.devState, force);
   }
 }
 
