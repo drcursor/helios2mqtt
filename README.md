@@ -8,9 +8,9 @@ It is a Node.js bridge that runs periodically to monitor and control Helios vent
 - **Auto-discovery in Home Assistant:** Automatically creates sensors and controls linked to the device by its serial number.
 - **Sensors:** Fan speed, temperatures (outdoor, supply, extract/indoor, exhaust), humidity, filter dates, and operational state.
 - **Bi-directional Control:**
-  - **Mode Selector (`select`):** Switch between `At home`, `Away`, `Boost`, and `Fireplace`.
+  - **Mode Selector (`select`):** Switch between `At home`, `Away`, `Boost`, and `Custom`.
   - **Boost Button (`button`):** Trigger Boost/Party mode for 30 minutes.
-  - **Fireplace Button (`button`):** Trigger Fireplace mode for 15 minutes.
+  - **Custom Mode Button (`button`):** Trigger Custom mode for 15 minutes.
   - **Fan Speed Control (`number`):** Set fan speed percentage (0–100%).
 
 ## Configuration
@@ -25,7 +25,19 @@ Configuration variables can be passed as environment/session variables or define
 | `MQTT_PORT` | MQTT Broker port | `1883` |
 | `MQTT_USER` (or `MQTT_USERNAME`)| MQTT username | `YOUR_MQTT_USERNAME` |
 | `MQTT_PASS` (or `MQTT_PASSWORD`)| MQTT password | `YOUR_MQTT_PASSWORD` |
+| `HELIOS_DEVICE_MODEL` | Override the model name shown in Home Assistant (e.g. `KWL 300 W ET L`) | auto-detected |
+| `HELIOS_DEVICE_TYPE` | Override the type/order number shown in Home Assistant (e.g. `A3712`) | auto-detected |
 | `REPEAT_INTERVAL` (or `POLL_INTERVAL`)| Polling interval in seconds | `60` |
+
+### Device naming
+
+The unit reports numeric model and type ids that are resolved through the lookup tables in
+`src/helios/deviceTypes.js`. Those tables come from the Vallox/Helios web UI and do not cover
+every unit, so an id may not resolve. In that case the bridge logs the raw id and falls back to
+the other known name, or to `Helios KWL (S/N <serial>, type <id>, model <id>)` if neither
+resolves. The serial number is also published as the device's `serial_number`, so it is always
+shown on the Home Assistant device page. Set `HELIOS_DEVICE_MODEL` and `HELIOS_DEVICE_TYPE` to
+name the device explicitly.
 
 ## Quick Start (Recommended: Docker Compose)
 
@@ -77,7 +89,7 @@ If you prefer to run bare-metal without Docker:
 ## MQTT Topics
 
 ### State Topics (Reported by bridge)
-- `helios/<SERIAL>/devState` — Current state (`At home`, `Away`, `Boost`, `Fireplace`)
+- `helios/<SERIAL>/devState` — Current state (`At home`, `Away`, `Boost`, `Custom`)
 - `helios/<SERIAL>/fan` — Fan speed (%)
 - `helios/<SERIAL>/outTemp` — Outside temperature (°C)
 - `helios/<SERIAL>/supTemp` — Supply temperature (°C)
@@ -88,9 +100,9 @@ If you prefer to run bare-metal without Docker:
 - `helios/<SERIAL>/filterDue` — Next filter change due date
 
 ### Command Topics (Received by bridge)
-- `helios/<SERIAL>/setDevState` — Set mode (`At home`, `Away`, `Boost`, `Fireplace`)
+- `helios/<SERIAL>/setDevState` — Set mode (`At home`, `Away`, `Boost`, `Custom`)
 - `helios/<SERIAL>/setBoost` — Trigger boost mode (payload: duration in minutes, e.g. `30`)
-- `helios/<SERIAL>/setFireplace` — Trigger fireplace mode (payload: duration in minutes, e.g. `15`)
+- `helios/<SERIAL>/setCustom` — Trigger custom mode (payload: duration in minutes, e.g. `15`). The legacy `setFireplace` topic is still accepted.
 - `helios/<SERIAL>/setFanSpeed` — Set fan speed (payload: `0`–`100`)
 
 ## Tested Hardware

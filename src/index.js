@@ -24,8 +24,10 @@ async function pollDevice({ force = false } = {}) {
     const status = await helios.getStatus();
     mqtt.registerDevice({
       serialNumber: status.serialNumber,
-      model: status.deviceModel,
-      type: status.deviceType,
+      model: config.deviceModel || status.deviceModel,
+      type: config.deviceType || status.deviceType,
+      modelId: status.deviceModelId,
+      typeId: status.deviceTypeId,
       heliosHost: config.heliosHost,
     });
     mqtt.publishStatus(status, { force });
@@ -63,12 +65,12 @@ mqtt.on('setBoost', async (minutes) => {
   }
 });
 
-mqtt.on('setFireplace', async (minutes) => {
+mqtt.on('setCustom', async (minutes) => {
   try {
-    console.log(`Executing fireplace timer: ${minutes}m`);
-    await helios.setFireplace(minutes);
+    console.log(`Executing custom mode timer: ${minutes}m`);
+    await helios.setCustom(minutes);
   } catch (err) {
-    console.error('Failed to set fireplace mode:', err.message);
+    console.error('Failed to set custom mode:', err.message);
   } finally {
     refreshAfterCommand();
   }

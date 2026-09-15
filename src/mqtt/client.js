@@ -57,15 +57,20 @@ class HeliosMQTTClient extends EventEmitter {
         this.emit('setDevState', payload);
       } else if (topic.endsWith('/setBoost') || topic.endsWith('/set_boost')) {
         this.emit('setBoost', payload);
-      } else if (topic.endsWith('/setFireplace') || topic.endsWith('/set_fireplace')) {
-        this.emit('setFireplace', payload);
+      } else if (
+        topic.endsWith('/setCustom') ||
+        topic.endsWith('/set_custom') ||
+        topic.endsWith('/setFireplace') ||
+        topic.endsWith('/set_fireplace')
+      ) {
+        this.emit('setCustom', payload);
       } else if (topic.endsWith('/setFanSpeed') || topic.endsWith('/set_fan')) {
         this.emit('setFanSpeed', payload);
       }
     });
   }
 
-  registerDevice({ serialNumber, model, type, heliosHost }) {
+  registerDevice({ serialNumber, model, type, modelId, typeId, heliosHost }) {
     if (this.deviceRegistered && this.serialNR === serialNumber) return;
 
     this.serialNR = serialNumber;
@@ -73,11 +78,28 @@ class HeliosMQTTClient extends EventEmitter {
       this.connect(serialNumber);
     }
 
-    console.log(`Registering HA device: Model "${model}", Type "${type}", Serial "${serialNumber}"`);
+    if (!model || !type) {
+      // The lookup tables do not cover every unit. Report the raw ids so the
+      // device can be identified, and point at the override settings.
+      const unknown = [!model ? `model id ${modelId}` : null, !type ? `type id ${typeId}` : null]
+        .filter(Boolean)
+        .join(' and ');
+      console.warn(
+        `Unit reported unrecognised ${unknown}. ` +
+          'Set HELIOS_DEVICE_MODEL / HELIOS_DEVICE_TYPE to name it explicitly.'
+      );
+    }
+
+    console.log(
+      `Registering HA device: Model "${model || `unknown (${modelId})`}", ` +
+        `Type "${type || `unknown (${typeId})`}", Serial "${serialNumber}"`
+    );
     const entities = generateHADiscoveryConfigs({
       serialNR: serialNumber,
       model,
       type,
+      modelId,
+      typeId,
       heliosUrl: heliosHost,
     });
 
@@ -99,6 +121,9 @@ class HeliosMQTTClient extends EventEmitter {
       `helios/${this.serialNR}/set_mode`,
       `helios/${this.serialNR}/setBoost`,
       `helios/${this.serialNR}/set_boost`,
+      `helios/${this.serialNR}/setCustom`,
+      `helios/${this.serialNR}/set_custom`,
+      // Legacy topic names, kept for backwards compatibility
       `helios/${this.serialNR}/setFireplace`,
       `helios/${this.serialNR}/set_fireplace`,
       `helios/${this.serialNR}/setFanSpeed`,

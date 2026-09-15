@@ -46,6 +46,6 @@ module.exports = {
     HOME: 'At home',
     AWAY: 'Away',
     BOOST: 'Boost',
-    FIREPLACE: 'Fireplace',
+    CUSTOM: 'Custom',
   },
 };

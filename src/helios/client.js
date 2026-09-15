@@ -109,7 +109,7 @@ class HeliosClient {
 
   /**
    * Changes the operation mode.
-   * @param {string} mode 'At home', 'Away', 'Boost', or 'Fireplace'
+   * @param {string} mode 'At home', 'Away', 'Boost', or 'Custom'
    */
   async setMode(mode) {
     const m = (mode || '').toLowerCase();
@@ -127,8 +127,8 @@ class HeliosClient {
       ]);
     } else if (m === 'boost') {
       return this.setBoost(30);
-    } else if (m === 'fireplace') {
-      return this.setFireplace(15);
+    } else if (m === 'custom' || m === 'fireplace') {
+      return this.setCustom(15);
     }
     throw new Error(`Unknown mode: ${mode}`);
   }
@@ -140,7 +140,7 @@ class HeliosClient {
   async setBoost(minutes = 30) {
     const mins = parseInt(minutes, 10);
     if (isNaN(mins)) throw new Error('Invalid minutes for boost');
-    // The fireplace timer takes precedence over boost in the unit's own state
+    // The custom mode timer takes precedence over boost in the unit's own state
     // calculation, so it has to be cleared for the switch to take effect.
     return this.writeRegisters([
       [REG_BOOST_TIMER, mins],
@@ -149,12 +149,12 @@ class HeliosClient {
   }
 
   /**
-   * Sets Fireplace mode for a specific duration in minutes.
+   * Sets Custom mode for a specific duration in minutes.
    * @param {number} minutes
    */
-  async setFireplace(minutes = 15) {
+  async setCustom(minutes = 15) {
     const mins = parseInt(minutes, 10);
-    if (isNaN(mins)) throw new Error('Invalid minutes for fireplace');
+    if (isNaN(mins)) throw new Error('Invalid minutes for custom mode');
     return this.writeRegisters([
       [REG_BOOST_TIMER, 0],
       [REG_FIREPLACE_TIMER, mins],

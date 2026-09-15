@@ -6,9 +6,20 @@ const deviceTypes = [
   null, "3722", "3702", "3712", "3732", "3608", "3609", "3118", "3527", "3528", "3741", "3750", "3751", "A3750", "A3751", "A3722", "A3741", "A3527", "A3528", "A3702", "A3712", "A3732", "A3609", "B3608", "A3118", "40043-001", "40044-001", "40045-001", "40046-001", "40047-001", "40048-001", "40049-001", "40050-001", "40051-001", "40052-001", "40053-001", "40054-001", "40055-001", "40056-001", "40057-001", "40058-001", "40059-001", "40060-001", "40061-001", "40062-001", "NA", "40149-001", "40150-001", "A3732-1", "3757", "3758", "3759", "3760", "3755", "3756", "3761", "3762", "40044-002", "40047-002", "40048-002", "40051-002", "40052-002", "40055-003", "40056-003", "40062-002", "40045-002 ", "40046-002", "40049-002", "40050-002", "D3741", "C3608", "C3608-1", "A3722-1 ", "A3732-2"
 ];
 
+// The tables above come from the Vallox/Helios web UI and are incomplete: units
+// report ids that are not listed (placeholder "NA" entries included). Return null
+// for those instead of a made-up label, so callers can fall back to something the
+// user can actually act on.
+function lookup(table, id) {
+  const name = typeof id === 'number' ? table[id] : undefined;
+  if (!name) return null;
+  const trimmed = name.trim();
+  return trimmed && trimmed !== 'NA' ? trimmed : null;
+}
+
 module.exports = {
   deviceModels,
   deviceTypes,
-  getModelName: (id) => deviceModels[id] || `Unknown (${id})`,
-  getTypeName: (id) => deviceTypes[id] || `Unknown (${id})`,
+  getModelName: (id) => lookup(deviceModels, id),
+  getTypeName: (id) => lookup(deviceTypes, id),
 };

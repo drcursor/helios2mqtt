@@ -84,7 +84,7 @@ function parseHeliosStatus(data) {
 
   let devState = MODES.HOME;
   if (fire !== 0) {
-    devState = MODES.FIREPLACE;
+    devState = MODES.CUSTOM;
   } else if (boost !== 0) {
     devState = MODES.BOOST;
   } else if (state !== 0) {
@@ -95,6 +95,9 @@ function parseHeliosStatus(data) {
     serialNumber: serialNumber.toString(),
     deviceModel,
     deviceType,
+    // Raw ids are kept so an unrecognised unit can be identified and reported
+    deviceModelId: modelId,
+    deviceTypeId: typeId,
     fanSpeed,
     outTemp,
     supTemp,

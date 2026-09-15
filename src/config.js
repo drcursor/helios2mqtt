@@ -35,6 +35,11 @@ module.exports = {
   mqttUser: process.env.MQTT_USER || process.env.MQTT_USERNAME || 'YOUR_MQTT_USERNAME',
   mqttPass: process.env.MQTT_PASS || process.env.MQTT_PASSWORD || 'YOUR_MQTT_PASSWORD',
 
+  // Optional overrides for units whose model/type ids are not in the lookup
+  // tables, or simply to name the device the way you want it in Home Assistant
+  deviceModel: process.env.HELIOS_DEVICE_MODEL || null,
+  deviceType: process.env.HELIOS_DEVICE_TYPE || null,
+
   // Polling interval in seconds
   repeatInterval: parseInt(process.env.REPEAT_INTERVAL || process.env.POLL_INTERVAL, 10) || 60,
 };

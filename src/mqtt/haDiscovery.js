@@ -1,18 +1,52 @@
 /**
+ * Builds the name and model shown on the Home Assistant device page.
+ * The unit's model/type ids are looked up in incomplete tables, so fall back
+ * through what is actually known rather than showing "Unknown (<id>)".
+ * @param {object} params
+ * @param {string} serialNR
+ * @param {?string} model Model name, or null when the id is not in the table
+ * @param {?string} type Type/order number, or null when the id is not in the table
+ * @param {?number} modelId Raw model id reported by the unit
+ * @param {?number} typeId Raw type id reported by the unit
+ */
+function describeDevice({ serialNR, model, type, modelId, typeId }) {
+  const name = model ? `Helios ${model}` : `Helios ${serialNR}`;
+
+  let modelLabel = type || model;
+  if (!modelLabel) {
+    // Nothing resolved: fall back to the serial number, which always identifies
+    // this unit, followed by the raw ids so an unlisted unit can be reported.
+    const details = [
+      `S/N ${serialNR}`,
+      typeId !== null && typeId !== undefined ? `type ${typeId}` : null,
+      modelId !== null && modelId !== undefined ? `model ${modelId}` : null,
+    ].filter(Boolean);
+    modelLabel = `Helios KWL (${details.join(', ')})`;
+  }
+
+  return { name, modelLabel };
+}
+
+/**
  * Generates Home Assistant MQTT Discovery configurations for a Helios device.
  * @param {object} params
  * @param {string} params.serialNR
- * @param {string} params.model
- * @param {string} params.type
+ * @param {?string} params.model
+ * @param {?string} params.type
+ * @param {?number} params.modelId
+ * @param {?number} params.typeId
  * @param {string} params.heliosUrl
  * @returns {Array<{ component: string, payload: object }>}
  */
-function generateHADiscoveryConfigs({ serialNR, model, type, heliosUrl }) {
+function generateHADiscoveryConfigs({ serialNR, model, type, modelId, typeId, heliosUrl }) {
+  const { name, modelLabel } = describeDevice({ serialNR, model, type, modelId, typeId });
+
   const device = {
-    name: `Helios ${model}`,
+    name,
     configuration_url: `http://${heliosUrl}/`,
-    model: type,
+    model: modelLabel,
     manufacturer: 'Helios',
+    serial_number: serialNR,
     identifiers: [serialNR],
   };
 
@@ -115,7 +149,7 @@ function generateHADiscoveryConfigs({ serialNR, model, type, heliosUrl }) {
         state_topic: `helios/${serialNR}/devState`,
         command_topic: `helios/${serialNR}/setDevState`,
         unique_id: `helios_${serialNR}_devState_select`,
-        options: ['At home', 'Away', 'Boost', 'Fireplace'],
+        options: ['At home', 'Away', 'Boost', 'Custom'],
         device: { identifiers: [serialNR] },
         icon: 'mdi:home-edit',
       },
@@ -134,16 +168,16 @@ function generateHADiscoveryConfigs({ serialNR, model, type, heliosUrl }) {
       },
     },
 
-    // Fireplace Button (15m)
+    // Custom Mode Button (15m)
     {
       component: 'button',
       payload: {
-        name: 'Fireplace (15m)',
-        command_topic: `helios/${serialNR}/setFireplace`,
+        name: 'Custom (15m)',
+        command_topic: `helios/${serialNR}/setCustom`,
         payload_press: '15',
         unique_id: `helios_${serialNR}_fireplace_button`,
         device: { identifiers: [serialNR] },
-        icon: 'mdi:fire',
+        icon: 'mdi:tune',
       },
     },
 
@@ -191,5 +225,6 @@ function generateHADiscoveryConfigs({ serialNR, model, type, heliosUrl }) {
 }
 
 module.exports = {
+  describeDevice,
   generateHADiscoveryConfigs,
 };
